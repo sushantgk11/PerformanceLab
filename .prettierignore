@@ -1,0 +1,7 @@
+﻿node_modules
+.next
+.npm-cache
+.tmp
+artifacts
+package-lock.json
+next-env.d.ts
