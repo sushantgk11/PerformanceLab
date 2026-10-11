@@ -9,6 +9,6 @@ export function useResource<K extends Resource>(
 ) {
   return useQuery({
     queryKey: [scope, resource, query],
-    queryFn: () => getData(resource, query),
+    queryFn: ({ signal }) => getData(resource, query, signal),
   });
 }

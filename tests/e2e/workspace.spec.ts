@@ -39,7 +39,12 @@ test("authentication, navigation, directories, reporting, settings, and live eve
   expect((await download).suggestedFilename()).toBe("workspace-report.csv");
 
   await page.getByRole("link", { name: "Users", exact: true }).click();
-  await expect(page.locator("tbody tr")).toHaveCount(10000);
+  await expect(page.locator(".virtualized-users table")).toHaveAttribute(
+    "aria-rowcount",
+    "10001",
+  );
+  await expect(page.locator("[data-user-row]").first()).toBeVisible();
+  expect(await page.locator("[data-user-row]").count()).toBeLessThan(50);
   await page
     .getByRole("textbox", { name: "Search name, email, or company..." })
     .fill("olivia.bennett1@");

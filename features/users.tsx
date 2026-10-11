@@ -1,5 +1,6 @@
-﻿"use client";
-import { useState } from "react";
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ArrowDownToLine,
   ArrowUpRight,
@@ -30,7 +31,12 @@ export function UsersPage() {
   const [role, setRole] = useState("All");
   const [sort, setSort] = useState("name");
   const [selected, setSelected] = useState<User | null>(null);
-  const result = useResource("users", query);
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+  const result = useResource("users", debouncedQuery);
   const rows = (result.data || [])
     .filter(
       (user) =>
@@ -114,7 +120,7 @@ export function UsersPage() {
               value={sort}
               onChange={setSort}
               options={[
-                { value: "name", label: "Name A–Z" },
+                { value: "name", label: "Name Aâ€“Z" },
                 { value: "joined", label: "Recently joined" },
                 { value: "spent", label: "Highest spend" },
               ]}
@@ -132,72 +138,18 @@ export function UsersPage() {
             <div className="result-caption">
               {number(rows.length)} users <span>Workspace directory</span>
             </div>
-            <div
-              className="table-scroll directory-table"
-              data-density={settings.density}
-            >
-              <table>
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Company</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Joined</th>
-                    <th>Total spend</th>
-                    <th>
-                      <span className="sr-only">Details</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((user) => (
-                    <tr key={user.id}>
-                      <td>
-                        <div className="person-cell">
-                          <img
-                            src={user.avatar}
-                            alt=""
-                            width={34}
-                            height={34}
-                          />
-                          <div>
-                            <button
-                              className="name-button"
-                              onClick={() => setSelected(user)}
-                            >
-                              {user.name}
-                            </button>
-                            <small>{user.email}</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        {user.company}
-                        <small>{user.country}</small>
-                      </td>
-                      <td>
-                        <span className="role-label">{user.role}</span>
-                      </td>
-                      <td>
-                        <Badge>{user.status}</Badge>
-                      </td>
-                      <td>{date(user.joined)}</td>
-                      <td className="amount">{money(user.spent)}</td>
-                      <td>
-                        <button
-                          className="icon-button"
-                          aria-label={`View ${user.name}`}
-                          onClick={() => setSelected(user)}
-                        >
-                          <ArrowUpRight size={17} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <VirtualizedUsers
+              key={JSON.stringify([
+                debouncedQuery,
+                status,
+                role,
+                sort,
+                settings.density,
+              ])}
+              users={rows}
+              density={settings.density}
+              onSelect={setSelected}
+            />
             <div className="table-bottom">
               {number(rows.length)} users in this view
             </div>
@@ -251,5 +203,141 @@ export function UsersPage() {
         </Modal>
       )}
     </>
+  );
+}
+
+function VirtualizedUsers({
+  users,
+  density,
+  onSelect,
+}: {
+  users: User[];
+  density: "comfortable" | "compact";
+  onSelect: (user: User) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const rowHeight = density === "compact" ? 56 : 72;
+  const headerHeight = 44;
+  // Keep this mutable virtualizer API outside compiler memoization.
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
+    count: users.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => rowHeight,
+    getItemKey: (index) => users[index].id,
+    scrollMargin: headerHeight,
+    overscan: 5,
+  });
+  const virtualRows = virtualizer.getVirtualItems();
+  const paddingTop = virtualRows.length
+    ? virtualRows[0].start - headerHeight
+    : 0;
+  const paddingBottom = virtualRows.length
+    ? Math.max(
+        0,
+        virtualizer.getTotalSize() -
+          (virtualRows[virtualRows.length - 1].end - headerHeight),
+      )
+    : virtualizer.getTotalSize();
+  return (
+    <div
+      ref={scrollRef}
+      className="table-scroll directory-table virtualized-users"
+      role="region"
+      aria-label="User directory"
+      tabIndex={0}
+      style={{ height: Math.min(750, users.length * rowHeight + headerHeight) }}
+      data-density={density}
+    >
+      <table aria-rowcount={users.length + 1}>
+        <colgroup>
+          <col style={{ width: "28%" }} />
+          <col style={{ width: "20%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "7%" }} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Company</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Joined</th>
+            <th>Total spend</th>
+            <th>
+              <span className="sr-only">Details</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {paddingTop > 0 && (
+            <tr aria-hidden="true">
+              <td
+                colSpan={7}
+                style={{ height: paddingTop, padding: 0, border: 0 }}
+              />
+            </tr>
+          )}
+          {virtualRows.map((virtualRow) => {
+            const user = users[virtualRow.index];
+            return (
+              <tr
+                key={user.id}
+                data-user-row
+                aria-rowindex={virtualRow.index + 2}
+                style={{ height: rowHeight }}
+              >
+                <td>
+                  <div className="person-cell">
+                    <img src={user.avatar} alt="" width={34} height={34} />
+                    <div>
+                      <button
+                        className="name-button"
+                        onClick={() => onSelect(user)}
+                      >
+                        {user.name}
+                      </button>
+                      <small>{user.email}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  {user.company}
+                  <small>{user.country}</small>
+                </td>
+                <td>
+                  <span className="role-label">{user.role}</span>
+                </td>
+                <td>
+                  <Badge>{user.status}</Badge>
+                </td>
+                <td>{date(user.joined)}</td>
+                <td className="amount">{money(user.spent)}</td>
+                <td>
+                  <button
+                    className="icon-button"
+                    aria-label={`View ${user.name}`}
+                    onClick={() => onSelect(user)}
+                  >
+                    <ArrowUpRight size={17} />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+          {paddingBottom > 0 && (
+            <tr aria-hidden="true">
+              <td
+                colSpan={7}
+                style={{ height: paddingBottom, padding: 0, border: 0 }}
+              />
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
