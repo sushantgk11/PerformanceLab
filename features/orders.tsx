@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ArrowDownToLine, ArrowUpRight, ShoppingBag, X } from "lucide-react";
 import { useResource } from "@/hooks/use-resource";
-import { useSettings } from "@/providers";
+import { useNotifications, useSettings } from "@/providers";
 import {
   clearSelection,
   toggleOrder,
@@ -27,7 +27,8 @@ export function OrdersPage({ initialOrder = "" }: { initialOrder?: string }) {
   const [sort, setSort] = useState("newest");
   const [selected, setSelected] = useState<Order | null>(null);
   const [initialOpen, setInitialOpen] = useState(Boolean(initialOrder));
-  const { settings, notify } = useSettings();
+  const { settings } = useSettings();
+  const notify = useNotifications();
   const dispatch = useAppDispatch();
   const selectedIds = useAppSelector((s) => s.workspace.selectedOrders);
   const result = useResource("orders", query);

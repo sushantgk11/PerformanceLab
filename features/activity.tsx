@@ -13,7 +13,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { subscribeToActivity } from "@/services/activity";
 import { useResource } from "@/hooks/use-resource";
-import { useSettings } from "@/providers";
+import { useNotifications, useSettings } from "@/providers";
 import {
   EmptyState,
   ErrorState,
@@ -32,7 +32,8 @@ export function ActivityPage() {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState("all");
   const [received, setReceived] = useState(0);
-  const { settings, notify } = useSettings();
+  const { settings } = useSettings();
+  const notify = useNotifications();
   useEffect(() => {
     if (paused || !result.isSuccess) return;
     return subscribeToActivity((event) => {

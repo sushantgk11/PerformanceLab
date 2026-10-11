@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ArrowDownToLine, ArrowUpRight, Package, Star } from "lucide-react";
 import { useResource } from "@/hooks/use-resource";
-import { useSettings } from "@/providers";
+import { useNotifications } from "@/providers";
 import {
   EmptyState,
   ErrorState,
@@ -27,7 +27,7 @@ export function ProductsPage() {
   const [category, setCategory] = useState("All products");
   const [sort, setSort] = useState("featured");
   const [selected, setSelected] = useState<Product | null>(null);
-  const { notify } = useSettings();
+  const notify = useNotifications();
   const result = useResource("products", query);
   const rows = (result.data || [])
     .filter(

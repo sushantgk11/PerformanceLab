@@ -1,4 +1,4 @@
-﻿# Performance Lab
+# Performance Lab
 
 A hands-on enterprise frontend workspace for exploring customers, commerce, and business reporting.
 
@@ -77,7 +77,7 @@ utils/              Formatting and CSV export
 tests/              Data/reporting unit tests and browser integration tests
 ```
 
-Pages and session checks use Server Components. Interactive screens use Client Components. The API layer lives at `/api/data/[resource]`; it requires a valid session and returns JSON. TanStack Query owns fetched data; Redux Toolkit owns workspace search, order selection, and dismissed notifications; Context owns application settings and workspace status; feature components own their controls and open dialogs. The mock subscription exposes an unsubscribe function used during navigation and pause/resume.
+Pages and session checks use Server Components. Interactive screens use Client Components. The API layer lives at `/api/data/[resource]`; it requires a valid session and returns JSON. TanStack Query owns fetched data; Redux Toolkit owns workspace search, order selection, and dismissed notifications; Separate contexts own application settings, the workspace clock, and notification actions; feature components own their controls and open dialogs. The mock subscription exposes an unsubscribe function used during navigation and pause/resume.
 
 ## Authentication and environment
 

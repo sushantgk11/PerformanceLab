@@ -2,6 +2,8 @@
 import {
   createContext,
   useContext,
+  useCallback,
+  useMemo,
   useEffect,
   useState,
   type ReactNode,
@@ -37,29 +39,67 @@ const defaults: Settings = {
 interface SettingsContextValue {
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
-  now: string;
   hydrated: boolean;
-  toast: string;
-  notify: (message: string) => void;
 }
 const SettingsContext = createContext<SettingsContextValue | null>(null);
+const NotificationsContext = createContext<((message: string) => void) | null>(
+  null,
+);
+const ClockContext = createContext<string | null>(null);
+
 export function useSettings() {
   const context = useContext(SettingsContext);
   if (!context) throw new Error("SettingsProvider is required");
   return context;
 }
-export function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } },
-      }),
-  );
-  const [store] = useState(createStore);
-  const [settings, setSettings] = useState(defaults);
-  const [now, setNow] = useState("");
-  const [hydrated, setHydrated] = useState(false);
+export function useNotifications() {
+  const notify = useContext(NotificationsContext);
+  if (!notify) throw new Error("NotificationsProvider is required");
+  return notify;
+}
+export function useClock() {
+  const now = useContext(ClockContext);
+  if (now === null) throw new Error("ClockProvider is required");
+  return now;
+}
+
+function NotificationsProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState("");
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+  return (
+    <NotificationsContext.Provider value={setToast}>
+      {children}
+      {toast && (
+        <div role="status" className="toast">
+          {toast}
+        </div>
+      )}
+    </NotificationsContext.Provider>
+  );
+}
+
+function ClockProvider({ children }: { children: ReactNode }) {
+  const [now, setNow] = useState("");
+  useEffect(() => {
+    const tick = () => setNow(new Date().toISOString());
+    const initial = setTimeout(tick, 0);
+    const interval = setInterval(tick, 15000);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
+  }, []);
+  return <ClockContext.Provider value={now}>{children}</ClockContext.Provider>;
+}
+
+function SettingsProvider({ children }: { children: ReactNode }) {
+  const [settings, setSettings] = useState(defaults);
+  const [hydrated, setHydrated] = useState(false);
+  const notify = useNotifications();
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
@@ -69,13 +109,8 @@ export function Providers({ children }: { children: ReactNode }) {
         /* Use workspace defaults when local storage is unavailable. */
       }
       setHydrated(true);
-      setNow(new Date().toISOString());
     }, 0);
-    const clock = setInterval(() => setNow(new Date().toISOString()), 15000);
-    return () => {
-      clearTimeout(timer);
-      clearInterval(clock);
-    };
+    return () => clearTimeout(timer);
   }, []);
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -92,33 +127,45 @@ export function Providers({ children }: { children: ReactNode }) {
     document.documentElement.dataset.density = settings.density;
     return () => media.removeEventListener("change", applyTheme);
   }, [settings]);
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(""), 4000);
-    return () => clearTimeout(timer);
-  }, [toast]);
-  function update(patch: Partial<Settings>) {
-    const next = { ...settings, ...patch };
-    setSettings(next);
-    try {
-      localStorage.setItem("lab-settings", JSON.stringify(next));
-    } catch {
-      setToast("Changes apply this session; browser storage is unavailable.");
-    }
-  }
+  const update = useCallback(
+    (patch: Partial<Settings>) => {
+      const next = { ...settings, ...patch };
+      setSettings(next);
+      try {
+        localStorage.setItem("lab-settings", JSON.stringify(next));
+      } catch {
+        notify("Changes apply this session; browser storage is unavailable.");
+      }
+    },
+    [settings, notify],
+  );
+  const value = useMemo(
+    () => ({ settings, update, hydrated }),
+    [settings, update, hydrated],
+  );
+  return (
+    <SettingsContext.Provider value={value}>
+      {children}
+    </SettingsContext.Provider>
+  );
+}
+
+export function Providers({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } },
+      }),
+  );
+  const [store] = useState(createStore);
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <SettingsContext.Provider
-          value={{ settings, update, now, hydrated, toast, notify: setToast }}
-        >
-          {children}
-          {toast && (
-            <div role="status" className="toast">
-              {toast}
-            </div>
-          )}
-        </SettingsContext.Provider>
+        <NotificationsProvider>
+          <SettingsProvider>
+            <ClockProvider>{children}</ClockProvider>
+          </SettingsProvider>
+        </NotificationsProvider>
       </QueryClientProvider>
     </Provider>
   );

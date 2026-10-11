@@ -22,7 +22,7 @@ import {
   FlaskConical,
   Check,
 } from "lucide-react";
-import { useSettings } from "@/providers";
+import { useClock, useNotifications, useSettings } from "@/providers";
 import {
   dismissNotification,
   setSearch,
@@ -78,7 +78,8 @@ export function Shell({
   const [mobile, setMobile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
-  const { settings, hydrated, now, notify } = useSettings();
+  const { settings } = useSettings();
+  const notify = useNotifications();
   const dispatch = useAppDispatch();
   const { search, dismissedNotifications } = useAppSelector((s) => s.workspace);
   const unread = notifications.filter(
@@ -284,20 +285,26 @@ export function Shell({
             <span className="system-status">
               <i />
               All systems operational
-              {hydrated && now && (
-                <span className="footer-clock">
-                  {" "}
-                  ·{" "}
-                  {new Date(now).toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              )}
+              <FooterClock />
             </span>
           </footer>
         </main>
       </div>
     </div>
+  );
+}
+
+function FooterClock() {
+  const now = useClock();
+  if (!now) return null;
+  return (
+    <span className="footer-clock">
+      {" "}
+      ·{" "}
+      {new Date(now).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}
+    </span>
   );
 }

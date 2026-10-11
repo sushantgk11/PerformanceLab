@@ -10,7 +10,7 @@ import {
   UserRound,
   SlidersHorizontal,
 } from "lucide-react";
-import { useSettings, type Settings } from "@/providers";
+import { useNotifications, useSettings, type Settings } from "@/providers";
 import { PageHeading } from "@/components/ui";
 function Toggle({
   label,
@@ -43,7 +43,8 @@ function Toggle({
   );
 }
 export function SettingsPage() {
-  const { settings, update, notify, hydrated } = useSettings();
+  const { settings, update, hydrated } = useSettings();
+  const notify = useNotifications();
   const [tab, setTab] = useState("Profile");
   function saveProfile(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

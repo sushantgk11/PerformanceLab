@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ArrowDownToLine,
@@ -9,7 +9,7 @@ import {
   Users as UsersIcon,
 } from "lucide-react";
 import { useResource } from "@/hooks/use-resource";
-import { useSettings } from "@/providers";
+import { useNotifications, useSettings } from "@/providers";
 import { setSearch, useAppDispatch, useAppSelector } from "@/store";
 import {
   Badge,
@@ -26,7 +26,8 @@ import type { User } from "@/types";
 export function UsersPage() {
   const query = useAppSelector((s) => s.workspace.search);
   const dispatch = useAppDispatch();
-  const { settings, notify } = useSettings();
+  const { settings } = useSettings();
+  const notify = useNotifications();
   const [status, setStatus] = useState("All");
   const [role, setRole] = useState("All");
   const [sort, setSort] = useState("name");
@@ -37,19 +38,27 @@ export function UsersPage() {
     return () => clearTimeout(timer);
   }, [query]);
   const result = useResource("users", debouncedQuery);
-  const rows = (result.data || [])
-    .filter(
-      (user) =>
-        (status === "All" || user.status === status) &&
-        (role === "All" || user.role === role),
-    )
-    .sort((a, b) =>
-      sort === "spent"
-        ? b.spent - a.spent
-        : sort === "joined"
-          ? b.joined.localeCompare(a.joined)
-          : a.name.localeCompare(b.name),
-    );
+  const rows = useMemo(
+    () =>
+      (result.data ?? [])
+        .filter(
+          (user) =>
+            (status === "All" || user.status === status) &&
+            (role === "All" || user.role === role),
+        )
+        .sort((a, b) =>
+          sort === "spent"
+            ? b.spent - a.spent
+            : sort === "joined"
+              ? b.joined.localeCompare(a.joined)
+              : a.name.localeCompare(b.name),
+        ),
+    [result.data, status, role, sort],
+  );
+  const activeUserCount = useMemo(
+    () => (result.data ?? []).filter((user) => user.status === "Active").length,
+    [result.data],
+  );
   return (
     <>
       <PageHeading
@@ -80,10 +89,7 @@ export function UsersPage() {
         <div className="summary-separator" />
         <span>
           <i className="green-dot" />
-          {number(
-            (result.data || []).filter((u) => u.status === "Active").length,
-          )}{" "}
-          active
+          {number(activeUserCount)} active
         </span>
         <span className="muted">Connected across 8 countries</span>
       </div>

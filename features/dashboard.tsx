@@ -25,9 +25,10 @@ import {
 } from "@/components/ui";
 import { GrowthChart, RevenueChart } from "@/components/charts";
 import { date, exportCsv, money, number } from "@/utils/format";
-import { useSettings } from "@/providers";
+import { useNotifications, useSettings } from "@/providers";
 export function Dashboard() {
-  const { settings, notify } = useSettings();
+  const { settings } = useSettings();
+  const notify = useNotifications();
   const [range, setRange] = useState(settings.defaultRange);
   const [page, setPage] = useState(1);
   const result = useQuery({

@@ -18,9 +18,10 @@ import {
   RevenueChart,
 } from "@/components/charts";
 import { exportCsv, money, number } from "@/utils/format";
-import { useSettings } from "@/providers";
+import { useNotifications, useSettings } from "@/providers";
 export function AnalyticsPage() {
-  const { settings, notify } = useSettings();
+  const { settings } = useSettings();
+  const notify = useNotifications();
   const [start, setStart] = useState(
     periodStart(Number(settings.defaultRange)),
   );
