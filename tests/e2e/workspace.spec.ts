@@ -41,7 +41,7 @@ test("authentication, navigation, directories, reporting, settings, and live eve
   await page.getByRole("link", { name: "Users", exact: true }).click();
   await expect(page.locator(".virtualized-users table")).toHaveAttribute(
     "aria-rowcount",
-    "10001",
+    "101",
   );
   await expect(page.locator("[data-user-row]").first()).toBeVisible();
   expect(await page.locator("[data-user-row]").count()).toBeLessThan(50);

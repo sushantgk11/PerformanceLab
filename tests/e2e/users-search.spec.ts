@@ -14,7 +14,7 @@ test("user search updates immediately and sends one request after typing stops",
   const searches: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (url.pathname === "/api/data/users")
+    if (url.pathname === "/api/users")
       searches.push(url.searchParams.get("q") || "");
   });
   const input = page.getByRole("textbox", {
@@ -31,6 +31,6 @@ test("user search updates immediately and sends one request after typing stops",
 
   await expect(page.locator(".virtualized-users table")).toHaveAttribute(
     "aria-rowcount",
-    "10001",
+    "101",
   );
 });

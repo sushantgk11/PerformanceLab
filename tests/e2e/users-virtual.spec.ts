@@ -24,7 +24,7 @@ for (const density of ["comfortable", "compact"] as const) {
     await expect(table).toHaveAttribute("data-density", density);
     await expect(table.locator("table")).toHaveAttribute(
       "aria-rowcount",
-      "10001",
+      "101",
     );
     await expect(rows.first()).toBeVisible();
     expect(await rows.count()).toBeLessThan(50);
@@ -34,7 +34,7 @@ for (const density of ["comfortable", "compact"] as const) {
     await table.evaluate((el) => {
       el.scrollTop = el.scrollHeight;
     });
-    await expect(rows.last()).toHaveAttribute("aria-rowindex", "10001");
+    await expect(rows.last()).toHaveAttribute("aria-rowindex", "101");
     await expect(rows.last()).toBeVisible();
     expect(await rows.count()).toBeLessThan(50);
     await rows.last().getByRole("button").first().click();
@@ -68,7 +68,7 @@ for (const density of ["comfortable", "compact"] as const) {
     await page.getByRole("button", { name: "Clear search" }).click();
     await expect(table.locator("table")).toHaveAttribute(
       "aria-rowcount",
-      "10001",
+      "101",
     );
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(rows.first()).toBeVisible();

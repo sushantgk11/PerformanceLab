@@ -15,7 +15,7 @@ test("obsolete user searches are cancelled on replacement and navigation", async
   const failures: { query: string; error: string }[] = [];
   page.on("requestfailed", (request) => {
     const url = new URL(request.url());
-    if (url.pathname === "/api/data/users")
+    if (url.pathname === "/api/users")
       failures.push({
         query: url.searchParams.get("q") || "",
         error: request.failure()?.errorText || "",
@@ -29,7 +29,7 @@ test("obsolete user searches are cancelled on replacement and navigation", async
   const leavingGate = new Promise<void>((resolve) => {
     releaseLeaving = resolve;
   });
-  await page.route("**/api/data/users?*", async (route) => {
+  await page.route("**/api/users?*", async (route) => {
     const query = new URL(route.request().url()).searchParams.get("q");
     if (query === "olivia") await oldGate;
     if (query === "liam") await leavingGate;

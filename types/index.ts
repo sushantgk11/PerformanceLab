@@ -56,3 +56,22 @@ export interface Dataset {
   activities: Activity[];
 }
 export type Resource = keyof Dataset;
+
+export interface UserDirectoryFilters {
+  query: string;
+  status: string;
+  role: string;
+  sort: string;
+}
+export interface UserDirectoryRequest extends UserDirectoryFilters {
+  page: number;
+  pageSize: number;
+}
+export interface UserDirectoryPage {
+  users: User[];
+  total: number;
+  matchedTotal: number;
+  activeCount: number;
+  page: number;
+  pageSize: number;
+}

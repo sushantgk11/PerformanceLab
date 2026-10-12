@@ -50,7 +50,7 @@ npm run test:e2e
 ## Features
 
 - **Overview:** Revenue and customer charts, KPI cards, recent activity, notifications, top products, recent orders with pagination, and CSV reports.
-- **Users:** 10,000 customers with avatars, company and country details, search, status and role filters, sorting, and detail dialogs.
+- **Users:** 10,000 customers with avatars, company and country details, search, status and role filters, sorting, 100-record server-side pagination, virtualized rows, full filtered CSV exports, and detail dialogs.
 - **Products:** 1,000 catalog entries with individual image URLs, category tabs, search, sorting, stock information, and detail dialogs.
 - **Orders:** 10,000 linked transactions with search, status filtering, sorting, row selection, CSV exports, and order details.
 - **Analytics:** Date-filtered revenue, customer and product views; geographic and category breakdowns; reporting exports.
@@ -77,7 +77,7 @@ utils/              Formatting and CSV export
 tests/              Data/reporting unit tests and browser integration tests
 ```
 
-Pages and session checks use Server Components. Interactive screens use Client Components. The API layer lives at `/api/data/[resource]`; it requires a valid session and returns JSON. TanStack Query owns fetched data; Redux Toolkit owns workspace search, order selection, and dismissed notifications; Separate contexts own application settings, the workspace clock, and notification actions; feature components own their controls and open dialogs. The mock subscription exposes an unsubscribe function used during navigation and pause/resume.
+Pages and session checks use Server Components. Interactive screens use Client Components. The API layer lives at `/api/data/[resource]`; it requires a valid session and returns JSON. The Users directory uses `/api/users` with `q`, `status`, `role`, `sort`, `page`, and `pageSize` (maximum 100). It returns page records and counts; `export=true` explicitly retrieves all matching users for CSV export. Other screens continue using the generic data endpoint. TanStack Query owns fetched data; Redux Toolkit owns workspace search, order selection, and dismissed notifications; Separate contexts own application settings, the workspace clock, and notification actions; feature components own their controls and open dialogs. The mock subscription exposes an unsubscribe function used during navigation and pause/resume.
 
 ## Authentication and environment
 

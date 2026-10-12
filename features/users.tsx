@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ArrowDownToLine,
@@ -8,7 +8,8 @@ import {
   MapPin,
   Users as UsersIcon,
 } from "lucide-react";
-import { useResource } from "@/hooks/use-resource";
+import { useUsers } from "@/hooks/use-users";
+import { getUsersForExport } from "@/services/api";
 import { useNotifications, useSettings } from "@/providers";
 import { setSearch, useAppDispatch, useAppSelector } from "@/store";
 import {
@@ -18,6 +19,7 @@ import {
   Loading,
   Modal,
   PageHeading,
+  Pagination,
   SearchBox,
   Select,
 } from "@/components/ui";
@@ -37,28 +39,33 @@ export function UsersPage() {
     const timer = setTimeout(() => setDebouncedQuery(query), 300);
     return () => clearTimeout(timer);
   }, [query]);
-  const result = useResource("users", debouncedQuery);
-  const rows = useMemo(
-    () =>
-      (result.data ?? [])
-        .filter(
-          (user) =>
-            (status === "All" || user.status === status) &&
-            (role === "All" || user.role === role),
-        )
-        .sort((a, b) =>
-          sort === "spent"
-            ? b.spent - a.spent
-            : sort === "joined"
-              ? b.joined.localeCompare(a.joined)
-              : a.name.localeCompare(b.name),
-        ),
-    [result.data, status, role, sort],
-  );
-  const activeUserCount = useMemo(
-    () => (result.data ?? []).filter((user) => user.status === "Active").length,
-    [result.data],
-  );
+  const filters = { query: debouncedQuery, status, role, sort };
+  const filterKey = JSON.stringify(filters);
+  const [pagination, setPagination] = useState({ key: "", page: 1 });
+  // Reset before querying whenever the effective filters change.
+  if (pagination.key !== filterKey) {
+    setPagination({ key: filterKey, page: 1 });
+  }
+  const page = pagination.key === filterKey ? pagination.page : 1;
+  const result = useUsers({ ...filters, page, pageSize: 100 });
+  const rows = result.data?.users ?? [];
+  const [exporting, setExporting] = useState(false);
+  async function exportUsers() {
+    setExporting(true);
+    try {
+      const matches = await getUsersForExport(filters);
+      exportCsv("users", matches);
+      notify("User directory exported.");
+    } catch (error) {
+      notify(
+        error instanceof Error
+          ? error.message
+          : "Unable to export users. Please try again.",
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
   return (
     <>
       <PageHeading
@@ -68,14 +75,11 @@ export function UsersPage() {
       >
         <button
           className="button"
-          disabled={!rows.length}
-          onClick={() => {
-            exportCsv("users", rows);
-            notify("User directory exported.");
-          }}
+          disabled={!rows.length || exporting}
+          onClick={exportUsers}
         >
           <ArrowDownToLine size={16} />
-          Export users
+          {exporting ? "Exporting..." : "Export users"}
         </button>
       </PageHeading>
       <div className="directory-summary">
@@ -83,13 +87,13 @@ export function UsersPage() {
           <UsersIcon size={22} />
         </span>
         <div>
-          <strong>{number(result.data?.length || 0)}</strong>
+          <strong>{number(result.data?.matchedTotal ?? 0)}</strong>
           <span>workspace users</span>
         </div>
         <div className="summary-separator" />
         <span>
           <i className="green-dot" />
-          {number(activeUserCount)} active
+          {number(result.data?.activeCount ?? 0)} active
         </span>
         <span className="muted">Connected across 8 countries</span>
       </div>
@@ -142,7 +146,8 @@ export function UsersPage() {
         ) : (
           <>
             <div className="result-caption">
-              {number(rows.length)} users <span>Workspace directory</span>
+              {number(result.data?.total ?? 0)} matching users{" "}
+              <span>Workspace directory</span>
             </div>
             <VirtualizedUsers
               key={JSON.stringify([
@@ -151,14 +156,20 @@ export function UsersPage() {
                 role,
                 sort,
                 settings.density,
+                result.data?.page,
               ])}
               users={rows}
               density={settings.density}
               onSelect={setSelected}
             />
-            <div className="table-bottom">
-              {number(rows.length)} users in this view
-            </div>
+            <Pagination
+              page={result.data!.page}
+              total={result.data!.total}
+              size={result.data!.pageSize}
+              onChange={(nextPage) =>
+                setPagination({ key: filterKey, page: nextPage })
+              }
+            />
           </>
         )}
       </section>
